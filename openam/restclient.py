@@ -79,8 +79,8 @@ class Client:
     Client rest implementation to comunicate with one OpenAm service
     """
 
-    _auth_resource = "/identity/authenticate"
-    _logout_resource = "/identity/logout"
+    _auth_resource = "/json/auth/1/authenticate"
+    _logout_resource = "/json/sessions/?_action=logout"
     _token_resource = "/identity/isTokenValid"
     _attribute_resource = "/identity/attributes"
     _set_attribute_resource = "/identity/update"
@@ -95,15 +95,15 @@ class Client:
         else:
             self._url = url
 
-        r = requests.get(urljoin(self._url, Client._auth_resource),
-                         params={"username": username, "password": password})
-
+        params = 'username=%s&password=%s' % (username, password)
+        r = requests.post(urljoin(self._url, Client._auth_resource) + params)
+        
         if r.status_code != requests.status_codes.codes.ok:
             raise ClientAuthenticationFailed()
 
         try:
-            _, token_id = r.text.split("=")
-            token_id = token_id.strip(" \r\n")
+            data = r.json()
+            token_id = data['tokenId']
         except Exception, e:
             raise ClientException(r.status_code, 
                                   "Some error has ocurred getting the token value from %s" % r.text)
